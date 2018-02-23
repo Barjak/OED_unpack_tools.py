@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
-
+# OED_unpack_tools.py -- Unpack the 'oed.t' blob included in the OED CD-ROM, then spit out JSON
+# Copyright (C) 2018 Jakob Barger
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import sys
 import os
 import zlib
@@ -13,7 +27,6 @@ import collections
 
 from parse import Parse
 
-OUTPUT_PATH=os.path.abspath("./output/")
 OFFSET_FILENAME="oed.t.offsets"
 
 OEDT_SHA512 = "fd0b2bbfedd23adfba22fbc18eb7492877a467807270d8286db89dbe4e3b612183d4d103420f74e7a4d04430a8d1cb80b0bdf5a67e7a54d926e6bffc152b603f"
@@ -45,11 +58,11 @@ def decompress_block(stream_in, begin, end):
     return text
 
 def main():
-    parser = argparse.ArgumentParser(prog='OED-unpack')
-    parser.add_argument('--input', '-i', '--oed.t',  nargs='?', type=argparse.FileType('rb'), required=True, metavar='FILE', help='The path to the input file.')
-    parser.add_argument('--output-dir', default='./output/', metavar='DIR', help='The output and working directory. (default ./output/)')
-    # parser.add_argument('--one-file', action='store_true')
-    # parser.add_argument('--leave-working-files', action='store_true', help="Don't delete the raw SGML dumps after they've been parsed.")
+    parser = argparse.ArgumentParser(prog='OED_unpack_tools.py')
+    parser.add_argument('--input', '-i', '--oed.t', nargs='?', type=argparse.FileType('rb'), required=True, metavar='FILE',
+                        help="The path to the input file. It will be named oed.t")
+    parser.add_argument('--output-dir', default='./output/', metavar='DIR', help='The output and working directory. (default=./output/)')
+    parser.add_argument('--dump-raw', action='store_true', help="Don't parse the files after extraction.")
     parser.add_argument('--jobs', default=1, type=lambda x: max(1, int(x)), metavar='N', help='The number of concurrent parsers to use.')
     parser.add_argument('--convert-UTF8', action='store_true', help='Not yet implemented. Only HTML entity references for now.')
 
@@ -91,7 +104,9 @@ def main():
         info
         for info in io_info
         if (
-            info.raw not in fileset and info.json not in fileset
+            (info.raw not in fileset and info.json not in fileset)
+            or
+            (info.raw not in fileset and arguments.dump_raw)
         )
     ]
 
@@ -106,6 +121,11 @@ def main():
 
         file_output.write(decompress_block(arguments.input, info.begin, info.end))
         file_output.close()
+
+    if arguments.dump_raw:
+        print("\rDone.")
+        exit(0)
+
     print("\rParsing...")
 
     fileset = {

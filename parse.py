@@ -1,8 +1,26 @@
-#!/usr/local/bin/pypy3
+#!/usr/bin/env python3
+# OED_unpack_tools.py -- Unpack the 'oed.t' blob included in the OED CD-ROM, then spit out JSON
+# Copyright (C) 2018 Jakob Barger
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import json
-import sys
-sys.path.append("/usr/lib/python3/dist-packages/")
+
+# You may need to tell Pypy3 where pyparsing is
+# import sys
+# sys.path.append("/usr/lib/python3/dist-packages/")
+
 from pyparsing import *
 L = Literal
 
