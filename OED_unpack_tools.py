@@ -69,38 +69,42 @@ def main():
 
     arguments = parser.parse_args()
     out_dir = arguments.output_dir
+
+    # Make sure the file is correct.
     if sha512sum(arguments.input) != OEDT_SHA512:
         raise RuntimeError("Checksum failure. This is not the right input file.")
     else:
         print("Correct checksum")
-
+    # Load list of block offsets.
     try:
         offset_file = open(OFFSET_FILENAME, 'r')
-    except:
+    except (OSError, IOError):
         raise RuntimeError("Can't open offset file.")
     offsets = [
         int(l)
         for l in iter(offset_file.readline, '')
     ]
-
+    # Gather output file information into one list.
+    io_info = [
+        OutputInfo("%d" % (b), "%d.json" % b, b, e)
+        for b,e in zip(offsets, offsets[1:])
+    ]
+    # Make the output directory if necessary.
     try:
         os.makedirs(out_dir, exist_ok=True)
-    except:
+    except OSError:
         raise RuntimeError("Can't create output directory")
 
     print("Decompressing...")
-
+    # Get the set of filenames in the output directory
     fileset = {
         entry.name
         for entry in os.scandir(out_dir)
         if entry.is_file()
     }
-
-    io_info = [
-        OutputInfo("%d" % (b), "%d.json" % b, b, e)
-        for b,e in zip(offsets, offsets[1:])
-    ]
-
+    # If neither the raw dump nor the parsed output are found
+    # or --dump-raw is specified
+    # then schedule extraction.
     files_needing_extraction = [
         info
         for info in io_info
@@ -110,19 +114,20 @@ def main():
             (info.raw not in fileset and arguments.dump_raw)
         )
     ]
-
+    # Extract.
     count = 0
     for info in files_needing_extraction:
         count += 1
         sys.stdout.write('\r  %.1f%%' % (100 * count / len(files_needing_extraction)))
         try:
             file_output = open(os.path.join(out_dir, info.raw), 'wb')
-        except:
+        except (OSError, IOError):
             raise RuntimeError("Can't create output file.")
 
         file_output.write(decompress_block(arguments.input, info.begin, info.end))
         file_output.close()
 
+    # If dump_raw then we're done here.
     if arguments.dump_raw:
         print("\rDone.")
         exit(0)
@@ -134,7 +139,8 @@ def main():
         for entry in os.scandir(out_dir)
         if entry.is_file()
     }
-
+    # If a raw file hasn't been deleted yet, then it's either this script's
+    # first execution or an interrupt might have happened during parse.
     thread_args = list([
         (os.path.join(out_dir, info.raw), os.path.join(out_dir, info.json), info.begin, info.end, arguments.convert_UTF8)
         for info in io_info
@@ -142,7 +148,7 @@ def main():
             info.raw in fileset
         )
     ])
-
+    # Parse. Remove raw file when done to signal completion.
     start = time.time()
     count = 0
     with concurrent.futures.ProcessPoolExecutor(arguments.jobs) as ex:
