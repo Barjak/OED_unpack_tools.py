@@ -40,9 +40,10 @@ def sha512sum(file):
     return h.hexdigest()
 
 def convert(info):
+    convert_UTF8 = info[4]
     with open(info[0], 'r') as in_file:
         with open(info[1], 'w') as out_file:
-            parse = Parse()
+            parse = Parse(convert_UTF8)
             out_file.write(parse.parseToJSON(in_file.read()))
     return info
 
@@ -64,7 +65,7 @@ def main():
     parser.add_argument('--output-dir', default='./output/', metavar='DIR', help='The output and working directory. (default=./output/)')
     parser.add_argument('--dump-raw', action='store_true', help="Don't parse the files after extraction.")
     parser.add_argument('--jobs', default=1, type=lambda x: max(1, int(x)), metavar='N', help='The number of concurrent parsers to use.')
-    parser.add_argument('--convert-UTF8', action='store_true', help='Not yet implemented. Only HTML entity references for now.')
+    parser.add_argument('--convert-UTF8', action='store_true', help='Convert entities to UTF8. Otherwise just use HTML entities.')
 
     arguments = parser.parse_args()
     out_dir = arguments.output_dir
@@ -135,7 +136,7 @@ def main():
     }
 
     thread_args = list([
-        (os.path.join(out_dir, info.raw), os.path.join(out_dir, info.json), info.begin, info.end)
+        (os.path.join(out_dir, info.raw), os.path.join(out_dir, info.json), info.begin, info.end, arguments.convert_UTF8)
         for info in io_info
         if (
             info.raw in fileset
@@ -146,7 +147,6 @@ def main():
     count = 0
     with concurrent.futures.ProcessPoolExecutor(arguments.jobs) as ex:
         for info in ex.map(convert, thread_args):
-            # print(info)
             os.remove(info[0])
             count += 1
             time_per_file = (time.time() - start) / count
