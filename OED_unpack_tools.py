@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # OED_unpack_tools.py -- Unpack the 'oed.t' blob included in the OED CD-ROM, then spit out JSON
 # Copyright (C) 2018 Jakob Barger
 #
